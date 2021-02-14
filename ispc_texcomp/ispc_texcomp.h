@@ -55,6 +55,11 @@ struct bc6h_enc_settings
     int fastSkipTreshold;
 };
 
+struct bc5_enc_settings
+{
+	bool normalize_rgb;
+};
+
 struct etc_enc_settings
 {
     int fastSkipTreshold;
@@ -116,6 +121,8 @@ Notes:
 
 extern "C" void CompressBlocksBC1(const rgba_surface* src, uint8_t* dst);
 extern "C" void CompressBlocksBC3(const rgba_surface* src, uint8_t* dst);
+extern "C" void CompressBlocksBC4(const rgba_surface* src, uint8_t* dst);
+extern "C" void CompressBlocksBC5(const rgba_surface* src, uint8_t* dst, bc5_enc_settings* settings);
 extern "C" void CompressBlocksBC6H(const rgba_surface* src, uint8_t* dst, bc6h_enc_settings* settings);
 extern "C" void CompressBlocksBC7(const rgba_surface* src, uint8_t* dst, bc7_enc_settings* settings);
 extern "C" void CompressBlocksETC1(const rgba_surface* src, uint8_t* dst, etc_enc_settings* settings);

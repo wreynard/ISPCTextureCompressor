@@ -594,6 +594,31 @@ inline void CompressBlockBC3(uniform rgba_surface src[], int xx, uniform int yy,
 	store_data(dst, src->width, xx, yy, data, 4);
 }
 
+inline void CompressBlockBC4(uniform rgba_surface src[], int xx, uniform int yy, uniform uint8 dst[])
+{
+	float block[48];
+    uint32 data[2];
+
+	load_block_interleaved(block, src, xx, yy); // loading rgb,  only need r
+	
+    CompressBlockBC3_alpha(&block[0], &data[0]);
+
+	store_data(dst, src->width, xx, yy, data, 2);
+}
+
+inline void CompressBlockBC5(uniform rgba_surface src[], int xx, uniform int yy, uniform uint8 dst[])
+{
+	float block[48];
+    uint32 data[4];
+
+	load_block_interleaved(block, src, xx, yy); // loading rgb, only need rg
+	
+    CompressBlockBC3_alpha(&block[0], &data[0]);
+	CompressBlockBC3_alpha(&block[16], &data[2]);
+
+	store_data(dst, src->width, xx, yy, data, 4);
+}
+
 export void CompressBlocksBC1_ispc(uniform rgba_surface src[], uniform uint8 dst[])
 {	
 	for (uniform int yy = 0; yy<src->height/4; yy++)
@@ -609,6 +634,24 @@ export void CompressBlocksBC3_ispc(uniform rgba_surface src[], uniform uint8 dst
 	foreach (xx = 0 ... src->width/4)
 	{
 		CompressBlockBC3(src, xx, yy, dst);
+	}
+}
+
+export void CompressBlocksBC4_ispc(uniform rgba_surface src[], uniform uint8 dst[])
+{	
+	for (uniform int yy = 0; yy<src->height/4; yy++)
+	foreach (xx = 0 ... src->width/4)
+	{
+		CompressBlockBC4(src, xx, yy, dst);
+	}
+}
+
+export void CompressBlocksBC5_ispc(uniform rgba_surface src[], uniform uint8 dst[])
+{	
+	for (uniform int yy = 0; yy<src->height/4; yy++)
+	foreach (xx = 0 ... src->width/4)
+	{
+		CompressBlockBC5(src, xx, yy, dst);
 	}
 }
 
