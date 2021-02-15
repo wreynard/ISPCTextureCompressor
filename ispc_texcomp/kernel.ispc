@@ -149,6 +149,27 @@ inline void load_block_interleaved_16bit(float block[48], uniform rgba_surface* 
     }
 }
 
+inline void normalize_block_interleaved(float block[48], uniform float prescale)
+{
+	float vec[3];
+	for (uniform int k=0; k<16; k++)
+	{
+		// put in [-1.0, 1.0]
+		vec[0] = (block[16*0+k] * prescale) * (255f/127f) - (128f/127f);
+		vec[1] = (block[16*1+k] * prescale) * (255f/127f) - (128f/127f);
+		vec[2] = (block[16*2+k] * prescale) * (255f/127f) - (128f/127f);
+
+		// compute normalization factor
+		float rnorm = rsqrt(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]);
+		
+		// normalize and put back into [0, 255] for compression
+		// apply rounding because ep expect to be on integer boundaries
+		block[16*0+k] = round((vec[0] * rnorm + (128f/127f)) * 127f);
+		block[16*1+k] = round((vec[1] * rnorm + (128f/127f)) * 127f);
+		block[16*2+k] = round((vec[2] * rnorm + (128f/127f)) * 127f);
+	}
+}
+
 inline void store_data(uniform uint8 dst[], int width, int xx, uniform int yy, uint32 data[], int data_size)
 {
 	for (uniform int k=0; k<data_size; k++)
@@ -619,6 +640,21 @@ inline void CompressBlockBC5(uniform rgba_surface src[], int xx, uniform int yy,
 	store_data(dst, src->width, xx, yy, data, 4);
 }
 
+inline void CompressBlockBC5_norm(uniform rgba_surface src[], int xx, uniform int yy, uniform uint8 dst[])
+{
+	float block[48];
+    uint32 data[4];
+
+	load_block_interleaved(block, src, xx, yy); // loading rgb, only need rg
+
+	normalize_block_interleaved(block, 1f/255f);
+	
+    CompressBlockBC3_alpha(&block[0], &data[0]);
+	CompressBlockBC3_alpha(&block[16], &data[2]);
+
+	store_data(dst, src->width, xx, yy, data, 4);
+}
+
 export void CompressBlocksBC1_ispc(uniform rgba_surface src[], uniform uint8 dst[])
 {	
 	for (uniform int yy = 0; yy<src->height/4; yy++)
@@ -646,12 +682,28 @@ export void CompressBlocksBC4_ispc(uniform rgba_surface src[], uniform uint8 dst
 	}
 }
 
-export void CompressBlocksBC5_ispc(uniform rgba_surface src[], uniform uint8 dst[])
+struct bc5_enc_settings
+{
+    bool normalize_rgb;
+};
+
+export void CompressBlocksBC5_ispc(uniform rgba_surface src[], uniform uint8 dst[], uniform bc5_enc_settings settings[])
 {	
-	for (uniform int yy = 0; yy<src->height/4; yy++)
-	foreach (xx = 0 ... src->width/4)
+	if (settings->normalize_rgb)
 	{
-		CompressBlockBC5(src, xx, yy, dst);
+		for (uniform int yy = 0; yy<src->height/4; yy++)
+		foreach (xx = 0 ... src->width/4)
+		{
+			CompressBlockBC5_norm(src, xx, yy, dst);
+		}
+	}
+	else
+	{
+		for (uniform int yy = 0; yy<src->height/4; yy++)
+		foreach (xx = 0 ... src->width/4)
+		{
+			CompressBlockBC5(src, xx, yy, dst);
+		}
 	}
 }
 
